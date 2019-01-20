@@ -1,0 +1,9 @@
+{
+    "name": "lanks/socket.io-php",
+    "description": "Realtime application framework (React PHP server).",
+    "keywords": ["event-loop", "asynchronous","socket.io"],
+    "license": "MIT",
+    "require": {
+        "react/event-loop": "^1.0.0"
+    }
+}
