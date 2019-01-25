@@ -52,12 +52,12 @@ class Socket extends EventEmitter
 
         // sends an `open` packet
         $this->transport->sid = $this->id;
-        $this->sendPacket('open', json_encode([
+        $this->sendPacket('open', json_decode(json_encode([
             'sid'=> $this->id,
             'upgrades'=> $this->getAvailableUpgrades(),
             'pingInterval'=> $this->server->pingInterval,
             'pingTimeout'=> $this->server->pingTimeout
-        ]));
+        ])));
 
         if ($this->server->initialPacket) {
             $this->sendPacket('message', $this->server->initialPacket);
@@ -186,7 +186,7 @@ class Socket extends EventEmitter
     
       $onPacket = function  ($packet) use($transport, $self,$clearInterval) {
         if ('ping' === $packet->type && 'probe' === $packet->data) {
-          $transport->send([{ type: 'pong', data: 'probe' }]);
+          $transport->send(\json_decode("{ type: 'pong', data: 'probe' }"));
           $self->emit('upgrading', $transport);
           $clearInterval($sef->checkIntervalTimer);
           $sef->checkIntervalTimer = setInterval($check, 100);
@@ -209,17 +209,17 @@ class Socket extends EventEmitter
           cleanup();
           transport.close();
         }
-      }
+      };
     
       // we force a polling cycle to ensure a fast upgrade
-      function check () {
+      $check = function  () {
         if ('polling' === $sef->transport.name && $sef->transport.writable) {
           debug('writing a noop packet to polling for fast upgrade');
-          $sef->transport.send([{ type: 'noop' }]);
+          $sef->transport.send( \json_decode("{ type: 'noop' }"));
         }
-      }
+      };
     
-      function cleanup () {
+      $cleanup = function  () {
         $sef->upgrading = false;
     
         clearInterval($sef->checkIntervalTimer);
@@ -228,31 +228,31 @@ class Socket extends EventEmitter
         clearTimeout($sef->upgradeTimeoutTimer);
         $sef->upgradeTimeoutTimer = null;
     
-        transport.removeListener('packet', onPacket);
-        transport.removeListener('close', onTransportClose);
-        transport.removeListener('error', onError);
-        $sef->removeListener('close', onClose);
-      }
+        transport.removeListener('packet', $onPacket);
+        transport.removeListener('close', $onTransportClose);
+        transport.removeListener('error', $onError);
+        $sef->removeListener('close', $onClose);
+      };
     
-      function onError (err) {
-        debug('client did not complete upgrade - %s', err);
+      $onError = function ($err) {
+        debug('client did not complete upgrade - %s', $err);
         cleanup();
-        transport.close();
-        transport = null;
-      }
+        $transport->close();
+        $transport = null;
+      };
     
-      function onTransportClose () {
+      $onTransportClose = function  () {
         onError('transport closed');
-      }
+      };
     
-      function onClose () {
+      $onClose =function  () {
         onError('socket closed');
-      }
+      };
     
-      transport.on('packet', onPacket);
-      transport.once('close', onTransportClose);
-      transport.once('error', onError);
+      $transport->on('packet', $onPacket);
+      $transport->once('close', $onTransportClose);
+      $transport->once('error', $onError);
     
-      $sef->once('close', onClose);
+      $sef->once('close', $onClose);
     }
 }

@@ -7,7 +7,8 @@
         "react/event-loop": "^1.0.0",
         "evenement/evenement": "^3.0",
         "react/http": "^0.8.4",
-        "react/socket": "^1.2.0"
+        "react/socket": "^1.2.0",
+        "clue/zlib-react": "^0.2.1"
     },
     "autoload": {
         "psr-4": {

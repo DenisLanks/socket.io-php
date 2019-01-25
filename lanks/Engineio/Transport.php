@@ -5,7 +5,7 @@ namespace Lanks\Engineio;
 use Evenement\EventEmitter;
 use Psr\Http\Message\ServerRequestInterface;
 
-class Transport extends EventEmitter
+class Transport  extends EventEmitter implements DuplexStreamInterface
 {
     protected $name = 'transport';
     protected $readyState = '';
@@ -68,7 +68,7 @@ class Transport extends EventEmitter
         if( count($this->listeners('error')) > 0 ){
             $err = new stdClass();
             $err->type = 'TransportError';
-            $err->description = desc;
+            $err->description = $desc;
             $this->emit('error', $err);
         }else{
             echo("ignored transport error $msg ($desc)");

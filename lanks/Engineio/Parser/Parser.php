@@ -7,6 +7,62 @@ class Parser
     private static $error = ['type'=>'error','data'=>'parser error'];
 
     /**
+     * Packet type `connect`.
+     *
+     * @api public
+     */
+
+    public const CONNECT = 0;
+
+    /**
+     * Packet type `disconnect`.
+     *
+     * @api public
+     */
+
+    public const DISCONNECT = 1;
+
+    /**
+     * Packet type `event`.
+     *
+     * @api public
+     */
+
+    public const EVENT = 2;
+
+    /**
+     * Packet type `ack`.
+     *
+     * @api public
+     */
+
+    public const ACK = 3;
+
+    /**
+     * Packet type `error`.
+     *
+     * @api public
+     */
+
+    public const ERROR = 4;
+
+    /**
+     * Packet type 'binary event'
+     *
+     * @api public
+     */
+
+    public const BINARY_EVENT = 5;
+
+    /**
+     * Packet type `binary ack`. For acks with binary arguments.
+     *
+     * @api public
+     */
+
+    public const BINARY_ACK = 6;
+
+    /**
      * Convert a array or object to stdclass instance
      */
     private static function toStdClass($data){

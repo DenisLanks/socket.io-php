@@ -5,9 +5,11 @@ namespace Lanks\Engineio\Transports;
 use Closure;
 use React\Http\Response;
 use Lanks\Engineio\Transport;
+use Lanks\Engineio\Http\Accepts;
 use Lanks\Engineio\Parser\Parser;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Lanks\Engineio\Compression\Compressor;
 
 
 class Polling extends Transport
@@ -15,7 +17,10 @@ class Polling extends Transport
     protected $closeTimeout;
     protected $maxHttpBufferSize;
     protected $httpCompression;
-
+    protected $compressionMethods = [
+        'gzip'=> null,
+        'deflate'=> null
+    ];
     /**
      * HTTP polling constructor.
      *
@@ -59,7 +64,7 @@ class Polling extends Transport
             // assert: this.res, '.req and .res should be (un)set together'
             $this->onError('overlap from client');
             return new Response(500,[],'overlap from client');
-          }
+        }
         echo("setting request".PHP_EOL);
         
         $this->req = $req;
@@ -175,7 +180,7 @@ class Polling extends Transport
             return false;
           }
       
-          $self.onPacket($packet);
+          $self->onPacket($packet);
         };
       
         Parser::decodePayload($data, $callback);
@@ -274,7 +279,7 @@ class Polling extends Transport
             return;
         }
 
-        $encoding = accepts($this->req).encodings(['gzip', 'deflate']);
+        $encoding = (new Accepts($this->req))->encodings(['gzip', 'deflate']);
         if (!$encoding) {
             $respond($data);
             return;
@@ -293,5 +298,87 @@ class Polling extends Transport
         });
 
        
+    }
+
+    /**
+     * Compresses data.
+     *
+     * @api private
+     */
+    public function compress($data, $encoding,Closure $callback)
+    {
+        echo("compressing".PHP_EOL);
+        $buffers = [];
+        $nread = 0;
+        $compressor = Compressor::createCompressor($encoding);
+        $this->compressionMethods[$encoding]($this->httpCompression)
+            ->on('error', $callback)
+            ->on('data', function ($chunk) {
+                $buffers[]= $chunk;
+                $nread += strlen($chunk);
+            })
+            ->on('end', function () {
+                $callback(null, Buffer.concat(buffers, nread));
+            })
+            ->end($data);
+        # code...
+    }
+    /**
+     * Closes the transport.
+     *
+     * @api private
+     */
+    public function doClose(Closure $callback)
+    {
+        echo("closing".PHP_EOL);
+        
+        $self = $this;
+        $closeTimeoutTimer =null;
+        $onClose = function  () use ($self, $closeTimeoutTimer){
+            $clearTimeout($closeTimeoutTimer);
+            $callback();
+            $self->onClose();
+        };
+        
+        $closeTimeoutTimer = setTimeout($onClose, $this->closeTimeout);
+        if ($this->dataReq) {
+            debug('aborting ongoing data request');
+            $this->dataReq->destroy();
+        }
+        
+        if ($this->writable) {
+            echo("transport writable - closing right away".PHP_EOL);
+            $this->send([json_decode("{ type: 'close' }")]);
+            $onClose();
+        } else if ($this->discarded) {
+            echo("transport discarded - closing right away".PHP_EOL);
+            $onClose();
+        } else {
+            debug('transport not writable - buffering orderly close');
+            $this->shouldClose = $onClose;
+        }
+
+    }
+    /**
+     * Returns headers for a response.
+     *
+     * @param {http.IncomingMessage} request
+     * @param {Object} extra headers
+     * @api private
+     */
+
+    protected function headers($req, array $headers =[])
+    {
+        $headers;
+
+        // prevent XSS warnings on IE
+        // https://github.com/LearnBoost/socket.io/pull/1333
+        $ua = isset($req->headers['user-agent'])? $req->headers['user-agent'] : '';
+        if ($ua && (\strpos($ua,';MSIE') || \strpos($ua,'Trident/'))) {
+              $headers['X-XSS-Protection'] = '0';
+        }
+          
+        $this->emit('headers', $headers);
+        return $headers;
     }
 }
